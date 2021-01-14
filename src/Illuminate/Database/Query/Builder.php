@@ -546,7 +546,7 @@ class Builder
         );
 
         if (! $value instanceof Expression) {
-            $this->addBinding($value, 'where');
+            $this->addBinding($this->flattenValue($value), 'where');
         }
 
         return $this;
@@ -760,7 +760,7 @@ class Builder
         // string and not as a parameterized place-holder to be replaced by the PDO.
         foreach ($values as $value) {
             if (! $value instanceof Expression) {
-                $this->addBinding($value, 'where');
+                $this->addBinding($this->flattenValue($value), 'where');
             }
         }
 
@@ -904,7 +904,7 @@ class Builder
 
         $this->wheres[] = compact('column', 'type', 'boolean', 'not');
 
-        $this->addBinding($values, 'where');
+        $this->addBinding(array_slice($this->cleanBindings(Arr::flatten($values)), 0, 2), 'where');
 
         return $this;
     }
@@ -972,6 +972,8 @@ class Builder
             $value, $operator, func_num_args() == 2
         );
 
+        $value = $this->flattenValue($value);
+
         return $this->addDateBasedWhere('Date', $column, $operator, $value, $boolean);
     }
 
@@ -999,6 +1001,8 @@ class Builder
      */
     public function whereTime($column, $operator, $value, $boolean = 'and')
     {
+        $value = $this->flattenValue($value);
+
         return $this->addDateBasedWhere('Time', $column, $operator, $value, $boolean);
     }
 
@@ -1030,6 +1034,8 @@ class Builder
             $value, $operator, func_num_args() == 2
         );
 
+        $value = $this->flattenValue($value);
+
         return $this->addDateBasedWhere('Day', $column, $operator, $value, $boolean);
     }
 
@@ -1048,6 +1054,8 @@ class Builder
             $value, $operator, func_num_args() == 2
         );
 
+        $value = $this->flattenValue($value);
+
         return $this->addDateBasedWhere('Month', $column, $operator, $value, $boolean);
     }
 
@@ -1065,6 +1073,8 @@ class Builder
         list($value, $operator) = $this->prepareValueAndOperator(
             $value, $operator, func_num_args() == 2
         );
+
+        $value = $this->flattenValue($value);
 
         return $this->addDateBasedWhere('Year', $column, $operator, $value, $boolean);
     }
@@ -1343,7 +1353,7 @@ class Builder
         $this->havings[] = compact('type', 'column', 'operator', 'value', 'boolean');
 
         if (! $value instanceof Expression) {
-            $this->addBinding($value, 'having');
+            $this->addBinding($this->flattenValue($value), 'having');
         }
 
         return $this;
@@ -2347,6 +2357,17 @@ class Builder
         return array_values(array_filter($bindings, function ($binding) {
             return ! $binding instanceof Expression;
         }));
+    }
+
+    /**
+     * Get a scalar type value from an unknown type of input.
+     *
+     * @param  mixed  $value
+     * @return mixed
+     */
+    protected function flattenValue($value)
+    {
+        return is_array($value) ? head(Arr::flatten($value)) : $value;
     }
 
     /**
